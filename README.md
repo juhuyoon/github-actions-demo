@@ -1,46 +1,12 @@
-# Instructor Demo: Configuring GitHub Actions
+# Instructor Demo: GitHub Actions with Tests
 
-At this point in the course, you are well aware that GitHub is a very powerful tool for collaborating with multiple users on the same project. Collaboration inevitably will cause some conflicts whether that be within the code itself or with your overall workflow. On occasion some errors will slip past a local linter and make their way into pull requests. Wouldn't it be nice to automate something like linting before each pull request?
+## Setup Github Actions to run tests
 
-GitHub Actions is a great solution to this problem. For example, you could create a GitHub action to automatically run a linter against every pull request to ensure the code meets your agreed upon standards. Today, we are going to create such an action.
-
-* Before we begin, check out the [Introduction to GitHub Actions](https://docs.github.com/en/actions/learn-github-actions/introduction-to-github-actions) to get a grasp on some of the core concepts.
-
-## Initial Project Setup
-
-To begin, start by forking the following repository [GitHub Actions Demo](https://github.com/coding-boot-camp/github-actions-demo).  Once you have forked this repository you should then clone the forked repository to your local machine.
-
-## Create the Workflow
-
-Now that we have some code locally, let's create the workflow that will contain the actions we want to preform after each pull request.
-
-1. In your terminal create a new directory called `.github`. GitHub will automatically look for this directory when it's pushed to your repository.
-
-2. Create a `workflows` directory inside `.github`.
-
-3. Finally, create a `main.yml` file inside your `workflows` directory
-
-The folder structure should look something like this:
-
-```md
-.github
-└── workflows
-    └── main.yml
-```
-
-## Actions
-
-Our actions will be defined inside of our `main.yml` file. To begin, let's open up `main.yml` in our code editor. YAML is a recursive acronym that stands for "YAML Ain't Markup Language". YAML is human-readable syntax for data that is being stored or transmitted.
-
-* Note that the first part of this file simply gives a name to our workflow. The `on` portion specifies what should trigger the workflow. We also want our actions to run whenever someone creates a pull request to the `develop`, or `staging` branches.
-
-* Next we specify the `jobs` that can run sequentially or in parallel. We are specifying that we want our job `test` to run on a container that uses Ubuntu as it's operating system. This container will be spun up by GitHub when our workflow is invoked.
-
-* The `steps` section contains what actions or tasks we want to run on our container. In our case we are checking out the branch, using node v20, installing dependencies, and finally running our `eslint` script.
+1. Using the same repo you cloned earlier, in your code editor, open `.github/workflows/main.yml` and add the following content:
 
     ```yml
     # Name of workflow
-    name: Lint workflow
+    name: Lint  and Test workflow
 
     # Trigger workflow on all pull requests
     on:
@@ -48,6 +14,7 @@ Our actions will be defined inside of our `main.yml` file. To begin, let's open 
         branches:
         - develop
         - staging
+        - main
 
     # Jobs to carry out
     jobs:
@@ -61,10 +28,10 @@ Our actions will be defined inside of our `main.yml` file. To begin, let's open 
         - name: Checkout code
             uses: actions/checkout@v1
 
-        - name: Use Node.js 21.x
+        - name: Use Node.js 20.x
             uses: actions/setup-node@v1
             with:
-            node-version: 21.x
+            node-version: 20.x
 
         # Install dependencies
         - name: 🧰 install deps
@@ -73,44 +40,86 @@ Our actions will be defined inside of our `main.yml` file. To begin, let's open 
         # Run lint
         - name: Run lint
             run: npm run lint
+
+        # Run build
+        - name: Run Build
+            run: npm run build
+
+        # Run tests
+        - name: Test
+            run: npm run test
     ```
 
-* Save the content of the snippet above to your `main.yml` file.
+    * **yml** is a human-readable language intended for config files that are used with programs that store or transmit data. Think of yml, or **YAML**, as a more readable version of XML or JSON.
 
-## Create a Pull Request
+    * The first part of the file tells GitHub that when a PR is created against the `develop`, `staging`, or `main` branch, some work should be performed.
 
-Now it's time to give our linter something to complain about! We will make some changes in any component and then create a pull request.
+      ```yml
+      on:
+        pull_request:
+            branches:
+            - develop
+            - staging
+            - main
+      ```
 
-1. First let's make a new feature branch to create a pull request from:
+    * The latter half of this file tells GitHub that the action should be run on a container using the latest version of Ubuntu, a popular Linux distribution. A **container** is a virtual machine that runs on a server either locally or remotely. In this case, the container is being hosted by GitHub. Refer to the following example:
+
+      ```yml
+      jobs:
+        test:
+            # Operating system to run job on
+            runs-on: ubuntu-latest
+      ```
+
+    * The `main.yml` file also specifies some actions, This GitHub Actions workflow performs several automated steps whenever triggered: it checks out the code from the repository, sets up Node.js version 20.x, installs the project dependencies using npm install, runs the linter to check for code style issues, builds the project, and finally runs the tests to ensure everything is functioning correctly. Each step is defined with a name and an action, either using a predefined GitHub action or running a command directly.:
+
+      ```yml
+          steps:
+            # Get code from repo
+            - name: Checkout code
+                uses: actions/checkout@v1
+
+            - name: Use Node.js 20.x
+                uses: actions/setup-node@v1
+                with:
+                node-version: 20.x
+
+            # Install dependencies
+            - name: 🧰 install deps
+                run: npm install
+                
+            # Run lint
+            - name: Run lint
+                run: npm run lint
+
+            # Run build
+            - name: Run Build
+                run: npm run build
+
+            # Run tests
+            - name: Test
+                run: npm run test
+      ```
+
+## Finishing Up
+
+* Once you save your secret, the workflow setup should be complete and we just need to test it.
+
+* Frst, we need to add and commit the current changes and push to GitHub. Once we do this, we should see the workflow invoked.
+
+* Commit your changes, as follows:
 
     ```sh
-    git checkout -b feat/linting-test
+    git add -A
+    git commit -m "Workflow with failing test"
+    git push origin main
     ```
 
-2. Add and commit your changes, then push them to our `feat/linting-test` branch
+* Any changes that are made to your `main` branch will invoke your CD workflow on GitHub. Currently we have a failing test, so the action should fail and no deployments should have been triggered, as shown:
 
-    ```sh
-    git add .
-    git commit -m "Creating a PR for testing"
-    git push origin feat/linting-test
-    ```
-
-3. Head to GitHub and click "Create pull request" next to the yellow indicator for our recent change to `feat/linting-test`.
-
-    ![Pull Request](Images/01-pr.png)
-
-4. Click "Create pull request" and then click on "details".
-
-    ![PR details](Images/02-details.png)
-
-5. In this view we can see the output of our workflow
-
-    ![Workflow](Images/03-output.png)
-
-6. The PR should be automatically marked as having failed checks, indicating the author needs to refactor some of the code.
-
-    ![Failed checks](Images/04-failed.png)
+    ![In GitHub Actions, a change to the main branch invokes the CD workflow and fails.](./Images/15-workflow-failing-test.png)
 
 ## Conclusion
 
-Congratulations on gaining experience with GitHub Actions! This powerful feature can become part of your CI/CD pipeline, providing valuable automation and efficiency. While you might not use it for every project, it can be especially useful for group projects or large organizations.
+It's important for tests to pass in GitHub Actions when any Pull Request is created because it ensures that new changes do not introduce bugs or break existing functionality. Automated tests verify that the code behaves as expected, maintaining the project's stability and reliability. This helps catch issues early in the development process, improves code quality, and ensures a smoother integration of new features or fixes.
